@@ -1,0 +1,97 @@
+# =========================
+# PYTHON
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# =========================
+# VIRTUAL ENVIRONMENTS
+# =========================
+
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# =========================
+# ENV VARIABLES / SECRETS
+# =========================
+
+.env
+.env.*
+*.env
+
+# =========================
+# DATABASE / LOCAL FILES
+# =========================
+
+*.sqlite3
+*.db
+
+# =========================
+# LOGS
+# =========================
+
+*.log
+logs/
+
+# =========================
+# TEST / COVERAGE
+# =========================
+
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+
+# =========================
+# IDE / EDITOR
+# =========================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS FILES
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# FASTAPI / UVICORN TEMP
+# =========================
+
+*.pid
+*.reload
+
+# =========================
+# NODE (por si usas frontend)
+# =========================
+
+node_modules/
+
