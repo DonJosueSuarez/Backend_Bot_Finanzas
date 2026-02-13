@@ -23,3 +23,6 @@ class ITransactionRepository(ABC):
     def create(self, transaction: TransactionORM) -> bool:
         pass
     
+    @abstractmethod
+    def create_many(self, transactions: List[TransactionORM]):
+        pass

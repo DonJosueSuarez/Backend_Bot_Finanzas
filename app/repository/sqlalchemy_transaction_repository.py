@@ -1,3 +1,4 @@
+from typing import List
 from app.model.transaction import TransactionORM
 from sqlalchemy.orm import Session
 from app.repository.base_transaction_repository import ITransactionRepository
@@ -44,3 +45,14 @@ class PostgresUserRepository(ITransactionRepository):
         self.db.commit()
         self.db.refresh(transaction)
         return transaction
+    
+    def create_many(self, transactions: List[TransactionORM]):
+        try:
+            self.db.add_all(transactions)
+            self.db.commit()
+            for transaction in transactions:
+                self.db.refresh(transaction)
+            return transactions
+        except Exception as e:
+            self.db.rollback()
+            raise e

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 from app.model.user import UserORM
 
 class IUserRepository(ABC):
@@ -13,4 +13,8 @@ class IUserRepository(ABC):
     
     @abstractmethod
     def create(self, user: UserORM) -> UserORM:
+        pass
+    
+    @abstractmethod
+    def create_many(self, users: List[UserORM]):
         pass
