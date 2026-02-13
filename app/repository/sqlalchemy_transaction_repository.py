@@ -50,8 +50,6 @@ class PostgresUserRepository(ITransactionRepository):
         try:
             self.db.add_all(transactions)
             self.db.commit()
-            for transaction in transactions:
-                self.db.refresh(transaction)
             return transactions
         except Exception as e:
             self.db.rollback()

@@ -4,16 +4,17 @@ from app.model.enums import TipoMovimiento
 from typing import Optional
 
 class TransactionBase(BaseModel):
-    tipo: Optional[TipoMovimiento] = None
-    monto: Optional[Decimal] = None
-    descripcion: Optional[str] = None
-    category_id: Optional[int] = None
-
-class TransactionUpdate(TransactionBase):
     pass
 
-class TransactionCreate(TransactionBase):
-    tipo: TipoMovimiento
+class TransactionCreate(BaseModel):
     monto: Decimal
+    tipo: TipoMovimiento
+    descripcion: str
     user_id: int
     category_id: int
+
+class TransactionUpdate(BaseModel):
+    monto: Optional[Decimal] = None
+    tipo: Optional[TipoMovimiento] = None
+    descripcion: Optional[str] = None
+    category_id: Optional[int] = None
