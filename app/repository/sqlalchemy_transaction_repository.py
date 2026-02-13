@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.repository.base_transaction_repository import ITransactionRepository
 from app.dto.transaction_dtos import TransactionUpdate
 
-class PostgresUserRepository(ITransactionRepository):
+class PostgresTransactionRepository(ITransactionRepository):
     def __init__(self, db: Session):
         self.db = db
         

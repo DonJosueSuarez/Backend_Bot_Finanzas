@@ -6,10 +6,9 @@ class TransactionService:
     def __init__(self, repository: ITransactionRepository):
         self.repository = repository
         
-def create_many_transactions(self, transactions: List[TransactionCreate]):
-    # El truco: **t.model_dump() expande el DTO directamente al modelo
-    new_transactions = [
-        TransactionORM(**t.model_dump()) 
-        for t in transactions
-    ]
-    return self.repository.create_many(new_transactions)
+    def create_many_transactions(self, transactions: List[TransactionCreate]):
+        new_transactions = [
+            TransactionORM(**t.model_dump()) 
+            for t in transactions
+        ]
+        return self.repository.create_many(new_transactions)
