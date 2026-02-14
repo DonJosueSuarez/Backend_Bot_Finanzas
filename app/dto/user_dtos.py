@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class UserBase(BaseModel):
@@ -11,7 +11,12 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
-    nombre: str
     
     class Config:
         from_attributes = True
+        
+class UserSimple(BaseModel):
+    id: int
+    nombre: str
+    
+    model_config = ConfigDict(from_attributes=True)

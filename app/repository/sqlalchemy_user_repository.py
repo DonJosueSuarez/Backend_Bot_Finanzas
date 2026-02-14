@@ -13,6 +13,9 @@ class PostgresUserRepository(IUserRepository):
     def get_by_telegram_id(self, telegram_id: str):
         return self.db.query(UserORM).filter(UserORM.telegram_id == telegram_id).first()
     
+    def get_by_phone_number(self, phone_number: str):
+        return self.db.query(UserORM).filter(UserORM.telefono == phone_number).first()
+        
     def create(self, user: UserORM):
         self.db.add(user)
         self.db.commit()

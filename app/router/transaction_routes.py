@@ -9,12 +9,20 @@ from app.dto.transaction_dtos import TransactionCreate, TransactionResponse
 
 router = APIRouter()
 
-@router.post("/transactions/bulk", response_model=List[TransactionResponse])
-def create_many_transactions(
-    transactions: List[TransactionCreate],
-    db: Session = Depends(get_db)
-):
+def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService:
     repository = PostgresTransactionRepository(db)
-    service = TransactionService(repository)
-    
+    return TransactionService(repository)
+
+@router.post("/transactions/bulk", response_model=List[TransactionResponse])
+def create_many(
+    transactions: List[TransactionCreate],
+    service: TransactionService = Depends(get_transaction_service) # Una sola línea
+):
     return service.create_many_transactions(transactions)
+
+@router.get("/transactions", response_model=List[TransactionResponse])
+def get_transactions(
+    user_id: int,
+    service: TransactionService = Depends(get_transaction_service)
+):
+    return service.get_by_user_id(user_id)

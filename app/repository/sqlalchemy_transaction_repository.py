@@ -1,6 +1,6 @@
 from typing import List
 from app.model.transaction import TransactionORM
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.repository.base_transaction_repository import ITransactionRepository
 from app.dto.transaction_dtos import TransactionUpdate
 
@@ -11,8 +11,13 @@ class PostgresTransactionRepository(ITransactionRepository):
     def get_by_id(self, transaction_id: int):
         return self.db.query(TransactionORM).filter(TransactionORM.id == transaction_id).first()
     
-    def get_by_user_id(self, user_id, limit = 10, offset = 0):
+
+    def get_by_user_id(self, user_id: int, limit: int = 10, offset: int = 0):
         return (self.db.query(TransactionORM)
+                .options(
+                    joinedload(TransactionORM.user),     # Carga el usuario en el mismo viaje
+                    joinedload(TransactionORM.category)  # Carga la categoría en el mismo viaje
+                )
                 .filter(TransactionORM.user_id == user_id)
                 .limit(limit)
                 .offset(offset)

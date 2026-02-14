@@ -12,6 +12,10 @@ class IUserRepository(ABC):
         pass
     
     @abstractmethod
+    def get_by_phone_number(self, phone_number: str) -> Optional[UserORM]:
+        pass
+    
+    @abstractmethod
     def create(self, user: UserORM) -> UserORM:
         pass
     
