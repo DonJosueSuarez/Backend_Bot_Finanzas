@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.router.user_routes import router as user_router
 from app.router.transaction_routes import router as transaction_router
+from app.router.financial_routes import router as financial_router
 from app.database.postgresql_connection import engine, Base
 from app.model.user import UserORM
 from app.model.transaction import TransactionORM
@@ -19,3 +20,4 @@ app.add_middleware(
 setup_exception_handlers(app)
 app.include_router(user_router)
 app.include_router(transaction_router)
+app.include_router(financial_router)

@@ -23,6 +23,8 @@ def create_many(
 @router.get("/transactions", response_model=List[TransactionResponse])
 def get_transactions(
     user_id: int,
+    limit: int = 10,
+    offset: int = 0,
     service: TransactionService = Depends(get_transaction_service)
 ):
-    return service.get_by_user_id(user_id)
+    return service.get_by_user_id(user_id, limit, offset)
