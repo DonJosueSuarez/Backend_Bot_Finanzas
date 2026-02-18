@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Optional
 
 from app.database.postgresql_connection import get_db
 from app.repository.sqlalchemy_financial_repository import PostgresFinancialRepository
@@ -14,6 +16,8 @@ def get_financial_service(db: Session = Depends(get_db)) ->FinancialService:
 @router.get("/kpis")
 def get_kpi(
     user_id: int,
+    fecha_inicio: Optional[datetime] = None,
+    fecha_fin: Optional[datetime] = None,
     service: FinancialService = Depends(get_financial_service)
 ):
-    return service.get_dashboard_summary(user_id)
+    return service.get_dashboard_summary(user_id, fecha_inicio, fecha_fin)
