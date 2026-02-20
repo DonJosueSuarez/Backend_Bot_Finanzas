@@ -1,8 +1,13 @@
 from pydantic import BaseModel, ConfigDict
+from typing import Optional
+from app.model.enums import TipoCategoria
 
-class CategorySimple(BaseModel):
+class CategoryBase(BaseModel):
+    nombre: TipoCategoria
+    color: Optional[str] = None
+    image: Optional[str] = None
+
+class CategoryResponse(CategoryBase):
     id: int
-    nombre: str # Aquí Angular ya tiene el nombre para mostrar
-    color: str | None = None
     
     model_config = ConfigDict(from_attributes=True)

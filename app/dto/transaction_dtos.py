@@ -4,14 +4,14 @@ from app.model.enums import TipoMovimiento, TipoGasto
 from typing import Optional
 from datetime import datetime
 from app.dto.user_dtos import UserSimple
-from app.dto.category_dtos import CategorySimple
+from app.dto.category_dtos import CategoryResponse
 
 class TransactionBase(BaseModel):
     monto: Decimal
     tipo_movimiento: TipoMovimiento
     descripcion: str
-    category_id: int
-    tipo_gasto: TipoGasto
+    category_id: Optional[int] = None
+    tipo_gasto: Optional[TipoGasto] = None
     is_recurrente: bool
 
 class TransactionCreate(TransactionBase):
@@ -34,8 +34,7 @@ class TransactionResponse(BaseModel):
     tipo_gasto: Optional[TipoGasto]
     is_recurrente: bool
     
-    # IMPORTANTE: Estos nombres deben ser iguales a los 'relationship' del modelo
     user: UserSimple 
-    category: Optional[CategorySimple]
+    category: Optional[CategoryResponse]
 
     model_config = ConfigDict(from_attributes=True)

@@ -7,8 +7,9 @@ class CategoryORM(Base):
     __tablename__ = "categories_back"
     
     id = Column(Integer, primary_key=True, index=True, nullable=False, autoincrement=True)
-    nombre = Column(SAEnum(TipoCategoria), nullable=False, default=TipoCategoria.VARIOS_E_IMPREVISTOS)
+    nombre = Column(SAEnum(TipoCategoria), nullable=False)
     color = Column(String(100), nullable=True)
-    image = Column(String(300), nullable=False)
+    image = Column(String(300), nullable=True)
     
     transaction = relationship("TransactionORM", back_populates="category")
+    budgets = relationship("BudgetORM", back_populates="user")

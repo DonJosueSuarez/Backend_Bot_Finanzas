@@ -13,3 +13,4 @@ class UserORM(Base):
     fecha = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     transactions = relationship("TransactionORM", back_populates="user")
+    budgets = relationship("BudgetORM", back_populates="user")

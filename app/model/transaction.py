@@ -8,7 +8,7 @@ class TransactionORM(Base):
     __tablename__ = "transactions_back"
     
     id = Column(Integer, primary_key=True, index = True, autoincrement=True)
-    tipo_movimiento = Column(SAEnum(TipoMovimiento), nullable=False, default=TipoMovimiento.EGRESO)
+    tipo_movimiento = Column(SAEnum(TipoMovimiento), nullable=False)
     monto = Column(Numeric(precision=10, scale=2), nullable=False)
     descripcion = Column(String(255), nullable=False)
     tipo_gasto = Column(SAEnum(TipoGasto), nullable=True, default=TipoGasto.NECESIDAD)
