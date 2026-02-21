@@ -19,7 +19,7 @@ class PostgresFinancialRepository(IFinancialRepository):
                 )
                 .filter(TransactionORM.user_id == user_id,
                         TransactionORM.fecha >= fecha_inicio,
-                        TransactionORM.fecha <= fecha_fin)
+                        TransactionORM.fecha < fecha_fin)
                 .group_by(TransactionORM.tipo_movimiento)
                 .all())
         
@@ -30,20 +30,20 @@ class PostgresFinancialRepository(IFinancialRepository):
             
         return totals
     
-    def get_total_balance_to_date(self, user_id: int, fecha_corte: datetime) -> Decimal:
+    def get_total_balance_to_date(self, user_id: int, fecha_fin: datetime) -> Decimal:
         """Calcula el saldo acumulado desde el inicio de los tiempos hasta la fecha_fin."""
         ingresos = (self.db.query(func.sum(TransactionORM.monto))
                     .filter(
                         TransactionORM.user_id == user_id,
-                        TransactionORM.tipo_movimiento == "INGRESO",
-                        TransactionORM.fecha <= fecha_corte
+                        TransactionORM.tipo_movimiento == TipoMovimiento.INGRESO,
+                        TransactionORM.fecha < fecha_fin
                     ).scalar()) or Decimal(0)
                     
         egresos = (self.db.query(func.sum(TransactionORM.monto))
                 .filter(
                     TransactionORM.user_id == user_id,
-                    TransactionORM.tipo_movimiento == "EGRESO",
-                    TransactionORM.fecha <= fecha_corte
+                    TransactionORM.tipo_movimiento == TipoMovimiento.EGRESO,
+                    TransactionORM.fecha < fecha_fin
                 ).scalar()) or Decimal(0)
                 
         return ingresos - egresos
@@ -69,9 +69,9 @@ class PostgresFinancialRepository(IFinancialRepository):
                 .join(TransactionORM.category)
                 .filter(
                     TransactionORM.user_id == user_id,
-                    TransactionORM.tipo_movimiento == "EGRESO",
+                    TransactionORM.tipo_movimiento == TipoMovimiento.EGRESO,
                     TransactionORM.fecha >= fecha_inicio,
-                    TransactionORM.fecha <= fecha_fin
+                    TransactionORM.fecha < fecha_fin
                 )
                 .group_by(CategoryORM.nombre)
                 .all())

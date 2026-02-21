@@ -7,8 +7,10 @@ from app.dto.user_dtos import UserCreate, UserResponse
 
 router = APIRouter()
 
-@router.post("/users/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def get_user_service(db: Session = Depends(get_db)):
     repository = PostgresUserRepository(db)
-    service = UserService(repository)
+    return UserService(repository, db)
+
+@router.post("/users/", response_model=UserResponse)
+def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
     return service.register_user(user)

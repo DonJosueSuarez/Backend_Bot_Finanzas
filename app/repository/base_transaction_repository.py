@@ -12,17 +12,21 @@ class ITransactionRepository(ABC):
         pass
     
     @abstractmethod
-    def delete(self, transaction_id: int) -> TransactionORM:
+    def delete(self, transaction: TransactionORM) -> None:
         pass
     
     @abstractmethod
-    def update(self, transaction_id: int, transaction_data: TransactionORM) -> TransactionORM:
+    def update(self, transaction_data: TransactionORM) -> TransactionORM:
         pass
     
     @abstractmethod
-    def create(self, transaction: TransactionORM) -> bool:
+    def create(self, transaction: TransactionORM) -> TransactionORM:
         pass
     
     @abstractmethod
-    def create_many(self, transactions: List[TransactionORM]):
+    def create_many(self, transactions: List[TransactionORM]) -> List[TransactionORM]:
+        pass
+    
+    @abstractmethod
+    def count_by_user_id(self, user_id: int) -> int:
         pass

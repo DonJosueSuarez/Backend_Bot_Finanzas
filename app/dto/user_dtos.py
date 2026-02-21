@@ -3,8 +3,8 @@ from typing import Optional
 
 class UserBase(BaseModel):
     nombre: str
-    telegram_id: Optional[int] = None
-    telefono: Optional[int] = None
+    telegram_id: Optional[str] = None
+    telefono: Optional[str] = None
     
 class UserCreate(UserBase):
     pass

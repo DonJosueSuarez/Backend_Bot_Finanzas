@@ -6,6 +6,7 @@ from app.database.postgresql_connection import engine, Base
 from app.model.user import UserORM
 from app.model.transaction import TransactionORM
 from app.model.category import CategoryORM
+from app.model.budget import BudgetORM
 from global_exceptions import setup_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,7 +14,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=["http://localhost:4200","http://127.0.0.1:4200",],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,6 +1,6 @@
 from app.database.postgresql_connection import Base
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Enum as SAEnum, Boolean
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Enum as SAEnum, Boolean, Index
 from sqlalchemy.sql import func
 from app.model.enums import TipoMovimiento, TipoGasto
 
@@ -19,4 +19,8 @@ class TransactionORM(Base):
     category_id = Column(Integer, ForeignKey("categories_back.id"), nullable=True)
     
     user = relationship("UserORM", back_populates="transactions")
-    category = relationship("CategoryORM", back_populates="transaction")
+    category = relationship("CategoryORM", back_populates="transactions")
+    
+    __table_args__ = (
+        Index("ix_transactions_user_fecha", "user_id", "fecha"),
+    )

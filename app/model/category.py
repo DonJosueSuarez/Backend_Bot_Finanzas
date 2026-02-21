@@ -11,5 +11,5 @@ class CategoryORM(Base):
     color = Column(String(100), nullable=True)
     image = Column(String(300), nullable=True)
     
-    transaction = relationship("TransactionORM", back_populates="category")
-    budgets = relationship("BudgetORM", back_populates="user")
+    transactions = relationship("TransactionORM", back_populates="category")
+    budgets = relationship("BudgetORM", back_populates="category")

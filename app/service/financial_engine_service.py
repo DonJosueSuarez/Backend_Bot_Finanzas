@@ -2,7 +2,8 @@ from app.repository.base_financial_repository import IFinancialRepository
 from decimal import Decimal
 import math
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 
 class FinancialService:
     def __init__(self, repository: IFinancialRepository):
@@ -12,11 +13,17 @@ class FinancialService:
         return self.repository.get_balance(user_id) """
             
     def get_dashboard_summary(self, user_id: int, fecha_inicio: Optional[datetime] = None, fecha_fin: Optional[datetime] = None):
-        if not fecha_fin:
-            fecha_fin = datetime.now()
-            
+        local_tz = ZoneInfo("America/Guayaquil")
+        now_local = datetime.now(local_tz)
         if not fecha_inicio:
-            fecha_inicio = datetime.combine(date.today().replace(day=1), datetime.min.time())
+            fecha_inicio = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if not fecha_fin:
+            fecha_fin = now_local
+
+        # Convertimos a UTC antes de enviar al repository
+        fecha_inicio = fecha_inicio.astimezone(ZoneInfo("UTC"))
+        fecha_fin = fecha_fin.astimezone(ZoneInfo("UTC"))
             
         totals_periodo = self.repository.get_totals_by_type(user_id, fecha_inicio, fecha_fin)
         ingresos_periodo = totals_periodo.get("INGRESO", Decimal(0))

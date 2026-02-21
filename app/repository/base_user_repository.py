@@ -12,7 +12,7 @@ class IUserRepository(ABC):
         pass
     
     @abstractmethod
-    def get_by_phone_number(self, phone_number: str) -> Optional[UserORM]:
+    def get_by_telefono(self, phone_number: str) -> Optional[UserORM]:
         pass
     
     @abstractmethod
@@ -20,5 +20,5 @@ class IUserRepository(ABC):
         pass
     
     @abstractmethod
-    def create_many(self, users: List[UserORM]):
+    def create_many(self, users: List[UserORM]) -> List[UserORM]:
         pass
