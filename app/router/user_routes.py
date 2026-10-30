@@ -14,3 +14,7 @@ def get_user_service(db: Session = Depends(get_db)):
 @router.post("/users/", response_model=UserResponse)
 def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
     return service.register_user(user)
+
+@router.get("/users/telegram/{telegram_id}", response_model=UserResponse)
+def get_user_by_telegram_id(telegram_id: str, service: UserService = Depends(get_user_service)):
+    return service.get_user_by_telegram_id(telegram_id)

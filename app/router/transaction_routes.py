@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database.postgresql_connection import get_db
 from app.repository.sqlalchemy_transaction_repository import PostgresTransactionRepository
+from app.repository.sqlalchemy_category_repository import PostgresCategoryRepository
 from app.service.transaction_service import TransactionService
 from app.dto.transaction_dtos import TransactionCreate, TransactionResponse
 from pydantic import BaseModel
@@ -17,7 +18,8 @@ router = APIRouter()
 
 def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService:
     repository = PostgresTransactionRepository(db)
-    return TransactionService(repository, db)
+    category_repository = PostgresCategoryRepository(db)
+    return TransactionService(repository, category_repository, db)
 
 @router.post("/transactions/bulk", response_model=List[TransactionResponse])
 def create_many(

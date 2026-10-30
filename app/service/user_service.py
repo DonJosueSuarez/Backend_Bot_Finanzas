@@ -16,12 +16,18 @@ class UserService:
         if not user:
             raise NotFoundException(f"El usuario con ID {user_id} no existe")
         return user
-        
+
+    def get_user_by_telegram_id(self, telegram_id: str) -> UserORM:
+        user = self.repository.get_by_telegram_id(telegram_id)
+        if not user:
+            raise NotFoundException(f"No hay un usuario con telegram_id {telegram_id}")
+        return user
+
     def register_user(self, user_data: UserCreate) -> UserORM:
-        existing = self.repository.get_by_telefono(user_data.telefono)
+        existing = self.repository.get_by_telegram_id(user_data.telegram_id)
         if existing:
             raise AppException(
-                f"El usuario con el teléfono {user_data.telefono} ya está registrado",
+                f"Este usuario ya está registrado",
                 status_code=400
             )
 

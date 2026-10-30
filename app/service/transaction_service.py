@@ -1,22 +1,59 @@
 from typing import List
 from sqlalchemy.orm import Session
 from app.repository.base_transaction_repository import ITransactionRepository
+from app.repository.base_category_repository import ICategoryRepository
 from app.dto.transaction_dtos import TransactionCreate, TransactionUpdate
 from app.model.transaction import TransactionORM
+from app.model.enums import TipoMovimiento, TipoGasto
 from app.core.exceptions import NotFoundException
 
 
 class TransactionService:
 
-    def __init__(self, repository: ITransactionRepository, db: Session):
+    def __init__(
+        self,
+        repository: ITransactionRepository,
+        category_repository: ICategoryRepository,
+        db: Session
+    ):
         self.repository = repository
+        self.category_repository = category_repository
         self.db = db
+
+    # -------------------------
+    # DTO -> ORM
+    # -------------------------
+    def _build_transaction(self, data: TransactionCreate) -> TransactionORM:
+        values = data.model_dump(exclude={"categoria"})
+
+        # El bot manda la categoría por nombre; se traduce a su id
+        if data.categoria and values["category_id"] is None:
+            category = self.category_repository.get_by_nombre(data.categoria)
+            if not category:
+                raise NotFoundException(f"La categoría {data.categoria.value} no existe")
+            values["category_id"] = category.id
+
+        transaction = TransactionORM(**values)
+        self._apply_tipo_gasto_rules(transaction)
+        return transaction
+
+    # -------------------------
+    # REGLAS DE TIPO DE GASTO
+    # -------------------------
+    @staticmethod
+    def _apply_tipo_gasto_rules(transaction: TransactionORM) -> None:
+        # Un ingreso no es necesidad ni deseo
+        if transaction.tipo_movimiento == TipoMovimiento.INGRESO:
+            transaction.tipo_gasto = None
+        # Un egreso sin clasificar cuenta como necesidad (lo usa el KPI de supervivencia)
+        elif transaction.tipo_gasto is None:
+            transaction.tipo_gasto = TipoGasto.NECESIDAD
 
     # -------------------------
     # CREATE ONE
     # -------------------------
     def create_transaction(self, data: TransactionCreate) -> TransactionORM:
-        transaction = TransactionORM(**data.model_dump())
+        transaction = self._build_transaction(data)
 
         self.repository.create(transaction)
 
@@ -34,7 +71,7 @@ class TransactionService:
     ) -> List[TransactionORM]:
 
         new_transactions = [
-            TransactionORM(**t.model_dump())
+            self._build_transaction(t)
             for t in transactions
         ]
 
@@ -85,6 +122,8 @@ class TransactionService:
 
         for key, value in update_data.items():
             setattr(transaction, key, value)
+
+        self._apply_tipo_gasto_rules(transaction)
 
         self.db.commit()
         self.db.refresh(transaction)

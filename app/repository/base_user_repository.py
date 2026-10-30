@@ -11,9 +11,9 @@ class IUserRepository(ABC):
     def get_by_telegram_id(self, telegram_id: str) -> Optional[UserORM]:
         pass
     
-    @abstractmethod
-    def get_by_telefono(self, phone_number: str) -> Optional[UserORM]:
-        pass
+    # @abstractmethod
+    # def get_by_telefono(self, phone_number: str) -> Optional[UserORM]:
+    #     pass
     
     @abstractmethod
     def create(self, user: UserORM) -> UserORM:

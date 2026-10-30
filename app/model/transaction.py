@@ -11,7 +11,8 @@ class TransactionORM(Base):
     tipo_movimiento = Column(SAEnum(TipoMovimiento), nullable=False)
     monto = Column(Numeric(precision=10, scale=2), nullable=False)
     descripcion = Column(String(255), nullable=False)
-    tipo_gasto = Column(SAEnum(TipoGasto), nullable=True, default=TipoGasto.NECESIDAD)
+    # Solo aplica a egresos; el servicio lo deja en NULL para ingresos
+    tipo_gasto = Column(SAEnum(TipoGasto), nullable=True)
     fecha = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_recurrente = Column(Boolean, nullable=False, default=False)
     

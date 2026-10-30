@@ -14,8 +14,8 @@ class PostgresUserRepository(IUserRepository):
     def get_by_telegram_id(self, telegram_id: str) -> Optional[UserORM]:
         return self.db.query(UserORM).filter(UserORM.telegram_id == telegram_id).first()
     
-    def get_by_telefono(self, telefono: str) -> Optional[UserORM]:
-        return self.db.query(UserORM).filter(UserORM.telefono == telefono).first()
+    # def get_by_telefono(self, telefono: str) -> Optional[UserORM]:
+    #     return self.db.query(UserORM).filter(UserORM.telefono == telefono).first()
         
     def create(self, user: UserORM) -> UserORM:
         self.db.add(user)

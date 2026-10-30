@@ -7,6 +7,10 @@ class NotFoundException(AppException):
     def __init__(self, message: str = "Recurso no encontrado"):
         super().__init__(message, status_code=404)
         
+class UnauthorizedException(AppException):
+    def __init__(self, message: str = "No autorizado"):
+        super().__init__(message, status_code=401)
+
 class FinanceException(AppException):
     def __init__(self, message: str):
         super().__init__(message, status_code=422)
