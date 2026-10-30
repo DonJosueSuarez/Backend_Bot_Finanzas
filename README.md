@@ -54,6 +54,72 @@ Al arrancar, `main.py` crea las tablas que falten y llena `categories_back` con 
 > UPDATE transactions_back SET tipo_gasto = NULL WHERE tipo_movimiento = 'INGRESO';
 > ```
 
+`SQL_ECHO=true` en el `.env` imprime cada consulta SQL (útil en desarrollo). Por defecto está apagado.
+
+## Despliegue en la Raspberry Pi
+
+El backend corre como un servicio más del `compose.yml` de n8n (`/home/josue/n8n/compose.yml`). Así queda en la misma red Docker que `n8n` y `postgres`, y no publica ningún puerto. Lo único que llega desde internet es n8n, a través del túnel.
+
+```
+Telegram ─► Cloudflare Tunnel ─► n8n ─► http://backend:8000 ─► postgres:5432
+                                 (los tres en la red interna del compose)
+```
+
+1. Clona el repo junto a la carpeta de n8n:
+
+   ```bash
+   cd /home/josue && git clone <url-del-repo> backend-bot-finanzas
+   ```
+
+2. Agrega el servicio al `compose.yml`:
+
+   ```yaml
+     backend:
+       build: ../backend-bot-finanzas
+       restart: always
+       depends_on:
+         postgres:
+           condition: service_healthy
+       environment:
+         DATABASE_URL: ${BACKEND_DATABASE_URL}
+         API_KEY: ${BACKEND_API_KEY}
+   ```
+
+3. Agrega las variables al `.env` de n8n:
+
+   ```env
+   BACKEND_DATABASE_URL=postgresql+psycopg://admin_bot_finanzas:<clave-url-encoded>@postgres:5432/<base>
+   BACKEND_API_KEY=<la misma clave de la credencial de n8n>
+   ```
+
+   - El host es `postgres`, el nombre del servicio, no `localhost`.
+   - Si el schema del usuario no se llama igual que el usuario, agrega `?options=-csearch_path%3D<schema>` al final de la URL. Con el mismo nombre, Postgres lo usa solo (`search_path = "$user", public`).
+
+4. Construye y levanta solo el backend:
+
+   ```bash
+   cd /home/josue/n8n
+   docker compose up -d --build backend
+   docker compose logs -f backend
+   ```
+
+5. Prueba la API por la red interna (usa la `API_KEY` del contenedor, así la clave no queda en el historial de la shell):
+
+   ```bash
+   docker compose exec backend python -c "
+   import os, urllib.request as u, urllib.error as e
+   try:
+       u.urlopen(u.Request('http://backend:8000/users/telegram/0', headers={'X-API-Key': os.environ['API_KEY']}))
+   except e.HTTPError as x:
+       print(x.code, x.read().decode())"
+   ```
+
+   Si está todo bien, imprime `404 {"status":"error","message":"No hay un usuario con telegram_id 0",...}`. Eso confirma la conexión a Postgres y la API key. Un `401` significa que la clave no coincide.
+
+Para actualizar: `git pull` en la carpeta del repo y `docker compose up -d --build backend`.
+
+La imagen usa `python:3.13-slim`, que es multi-arquitectura, y todas las dependencias tienen wheels para arm64. No hace falta compilar nada en la Pi.
+
 ## Autenticación
 
 Todas las rutas exigen el header `X-API-Key` con el valor de `API_KEY`.
@@ -155,13 +221,13 @@ Usa una credencial nueva. La `Header Auth account` que ya existe es la de Groq.
 
 ### 2. URL base
 
-| Dónde corre n8n | URL del backend |
+| Dónde corre el backend | URL del backend |
 |---|---|
+| En el mismo compose que n8n (la Pi) | `http://backend:8000` |
+| En el host, con n8n en Docker | `http://host.docker.internal:8000` |
 | En la misma máquina, sin Docker | `http://localhost:8000` |
-| En Docker, backend en el host | `http://host.docker.internal:8000` |
-| En n8n Cloud | Una URL pública (túnel tipo ngrok o Cloudflare Tunnel, o un servidor) |
 
-La URL se define una sola vez por workflow, en el nodo **Config** (`backend_url`, por defecto `http://localhost:8000`). Los HTTP Request la leen con `{{ $('Config').item.json.backend_url }}`.
+La URL se define una sola vez por workflow, en el nodo **Config** (`backend_url`, por defecto `http://backend:8000`). Los HTTP Request la leen con `{{ $('Config').item.json.backend_url }}`.
 
 ### 3. Equivalencias nodo por nodo (`bot-finanzas`)
 
