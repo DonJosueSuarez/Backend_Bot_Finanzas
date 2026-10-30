@@ -1,0 +1,290 @@
+{
+  "name": "bot_registrador",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"usuario\": \"1\",\n  \"user_message\": \"Gasté 2.50 en empanadas\"\n}"
+      },
+      "id": "de6d6dad-17ad-41d7-9ce1-79f6eb472249",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        576,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Start').item.json.user_message }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Actúa como extractor de datos financieros. Devuelve solo un objeto JSON plano con:\n- tipo_movimiento: \"INGRESO\" o \"EGRESO\".\n- monto: número positivo con punto decimal (2.5, no 2,5).\n- descripcion: texto corto de lo que se compró o de dónde vino el dinero.\n- categoria: solo para egresos, exactamente una de: ALIMENTACION HOGAR, PIQUEOS Y COMIDA FUERA, TRANSPORTE Y MOVILIDAD, SERVICIOS Y SUSCRIPCIONES, CUIDADO PERSONAL, SALUD, ENTRETENIMIENTO Y SOCIAL, EDUCACION Y TRABAJO, VARIOS E IMPREVISTOS. Para ingresos, null.\n- tipo_gasto: solo para egresos. \"NECESIDAD\" si es indispensable (comida de casa, transporte al trabajo, servicios, salud) o \"DESEO\" si es prescindible (antojos, salidas, entretenimiento). Para ingresos, null.\n\nEjemplo: \"Gasté 2.50 en empanadas\" -> {\"tipo_movimiento\": \"EGRESO\", \"monto\": 2.5, \"descripcion\": \"empanadas\", \"categoria\": \"PIQUEOS Y COMIDA FUERA\", \"tipo_gasto\": \"DESEO\"}\nEjemplo: \"Pagué 0.90 de bus\" -> {\"tipo_movimiento\": \"EGRESO\", \"monto\": 0.9, \"descripcion\": \"bus\", \"categoria\": \"TRANSPORTE Y MOVILIDAD\", \"tipo_gasto\": \"NECESIDAD\"}\nEjemplo: \"Me pagaron 500 por un trabajo\" -> {\"tipo_movimiento\": \"INGRESO\", \"monto\": 500, \"descripcion\": \"trabajo\", \"categoria\": null, \"tipo_gasto\": null}\n\nSolo responde con el JSON del input actual. Sin explicaciones."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1024,
+        64
+      ],
+      "id": "f7a2e904-5115-4daa-b0ee-0df5f5e7d953",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        240
+      ],
+      "id": "bd90dea7-7aa9-441c-bb5c-8a4e45ce22b6",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "eUIXqXcd4aCIoLkb",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"tipo_movimiento\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"INGRESO\",\n        \"EGRESO\"\n      ]\n    },\n    \"monto\": {\n      \"type\": \"number\"\n    },\n    \"descripcion\": {\n      \"type\": \"string\"\n    },\n    \"categoria\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ]\n    },\n    \"tipo_gasto\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ]\n    }\n  },\n  \"required\": [\n    \"tipo_movimiento\",\n    \"monto\",\n    \"descripcion\",\n    \"categoria\",\n    \"tipo_gasto\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        288
+      ],
+      "id": "a88356c3-f207-41a9-bd80-dfe14388c68d",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8dc30f89-2211-48f7-872e-490cf89f6b45",
+              "name": "backend_url",
+              "value": "http://backend:8000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        64
+      ],
+      "id": "4c11d2c9-3f18-41f1-9c41-57ab4a72c03c",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.backend_url }}/transactions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: Number($('Start').item.json.usuario), ...$json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1408,
+        64
+      ],
+      "id": "ec614cbb-bb80-4561-b996-c5768947a461",
+      "name": "Registrar transacción",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.backend_url }}/kpis",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('Start').item.json.usuario }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1632,
+        64
+      ],
+      "id": "cf374ebd-1f0e-4098-b882-8c5818cf478f",
+      "name": "Consultar saldo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "442cb297-0989-486b-b653-ec734dfc8146",
+              "name": "tipo_movimiento",
+              "value": "={{ $('Registrar transacción').item.json.tipo_movimiento }}",
+              "type": "string"
+            },
+            {
+              "id": "f8d1545d-20ae-4f80-9e9b-1263c6470667",
+              "name": "descripcion",
+              "value": "={{ $('Registrar transacción').item.json.descripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "2348ea76-c880-4db8-8e41-5cd89c251053",
+              "name": "monto",
+              "value": "={{ $('Registrar transacción').item.json.monto }}",
+              "type": "string"
+            },
+            {
+              "id": "ac8b3f20-6e17-4501-b13a-fc2dec7cc900",
+              "name": "saldo_actual",
+              "value": "={{ $json.saldo_actual }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1856,
+        64
+      ],
+      "id": "37bb9e3e-551e-4c51-9f8e-0c65744d9231",
+      "name": "Resultado"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Registrar transacción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar transacción": {
+      "main": [
+        [
+          {
+            "node": "Consultar saldo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar saldo": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c3ee7639-23a4-4818-9e7e-dd178c7286b7",
+  "meta": {
+    "instanceId": "969530403be8ac7acb49032ea302a3b4bf67fd1171ad42741f30073541a28e48"
+  },
+  "nodeGroups": [],
+  "id": "tidigNdqK6XtwMxJ",
+  "tags": []
+}

@@ -1,0 +1,1317 @@
+{
+  "name": "bot-finanzas",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        560
+      ],
+      "id": "27a02ffc-9672-4450-b69e-664d97391010",
+      "name": "Telegram Trigger",
+      "webhookId": "02a44296-42e4-4d3e-83d1-5fa7b406b5f3",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        320
+      ],
+      "id": "baf73c26-10f1-4f78-b8e5-585833c06e04",
+      "name": "Get a file",
+      "webhookId": "45b269eb-6069-46fe-b07b-e4c6731caa4d",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Claro ñaño, tu total gastado el día de hoy es ***${{ $json.egresos_totales }}***, pilas 👀",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2384,
+        288
+      ],
+      "id": "3aad14fa-8757-4b20-83da-60b4333f9fc8",
+      "name": "Send a text message",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7fd4245b-c9d3-4499-89ed-6f6828f5da08",
+              "leftValue": "={{ $('Telegram Trigger').item.json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        336
+      ],
+      "id": "aa0bbd64-cbf6-4aee-81cf-b292d01c1782",
+      "name": "es audio?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "consultar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "55b5af99-78d9-439a-b500-b4eb270b4ed6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "consultar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "36889e7d-b779-4af9-b0b2-f2e870b93c0d",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "registrar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "registrar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8e65a45d-e910-4724-bdc6-7fca6a482841",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "saldo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "saldo"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "otro"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        304
+      ],
+      "id": "e144eeb4-afed-421b-a993-62861c73e4fc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Dale ñaño, registré correctamente tu egreso en ***{{ $json.descripcion }}*** te quedan ***${{ $json.saldo_actual }}*** ✅, pilas.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2624,
+        688
+      ],
+      "id": "c188d46b-5608-42e2-9b1c-022ea174ab22",
+      "name": "Send a text message1",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Claro ñaño, tu saldo es de ***${{ $json.saldo_actual }}*** 💰",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2384,
+        688
+      ],
+      "id": "c8013f84-498b-48aa-a03e-e2adb1d0e6cb",
+      "name": "Send a text message2",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "28316cc6-4e7b-4df9-bf30-a6730b681277",
+              "leftValue": "={{ $json.tipo_movimiento }}",
+              "rightValue": "INGRESO",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2384,
+        480
+      ],
+      "id": "cf60f4a8-c2db-4073-a6f9-58fddba3d5e3",
+      "name": "es ingreso?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Dale ñaño, registré correctamente tu ingreso por ***{{ $json.descripcion }}***, tu saldo actual es de ***${{ $json.saldo_actual }}*** ✅, pilas.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2624,
+        464
+      ],
+      "id": "cec32ad4-783e-4f73-97e4-9a096445d2b6",
+      "name": "Send a text message3",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5acc16b6-097f-4756-9978-e8a9ddc05c4e",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        560
+      ],
+      "id": "4118fc8a-4f8e-47aa-b6a9-26a210da5f81",
+      "name": "usuario existe?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Hola! {{ $('Telegram Trigger').item.json.message.from.first_name }}, soy tu bot de finanzas personales, para poder comenzar, díme, cuál es tu saldo inicial? ⬇️",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        656
+      ],
+      "id": "7f32c4af-429f-417c-928e-e138cc417f6e",
+      "name": "Send a text message4",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        320
+      ],
+      "id": "2cc43ec0-4ec5-444f-a1b9-f26a7aede65c",
+      "name": "Transcribe a Recording",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Xxhj4sReuiND1Wxf",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        1616,
+        240
+      ],
+      "id": "32d53414-337c-46a5-86ce-1cff2763589b",
+      "name": "When chat message received",
+      "webhookId": "a73b393d-f595-46c6-b1d3-3b848f915294"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}{{ $json.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Clasifica el mensaje del usuario. Responde solo con una de estas opciones: registrar, consultar, saldo u otro. Reglas: registrar si quiere agregar un ingreso o un egreso. consultar si pregunta cuánto ha gastado hoy. saldo si pregunta cuál es su saldo o cuánto dinero le queda. otro si no encaja en ninguna de las anteriores. Ejemplos: cuánto gasté el día de hoy, la opción es consultar. Gasté 1 dólar en unas galletas, la opción es registrar. Me gané 5 dólares por un trabajo, la opción es registrar. Cuánto dinero me queda, la opción es saldo. Hola cómo estás, la opción es otro."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1536,
+        528
+      ],
+      "id": "c4f9e8d0-79b4-4c48-bcab-c7f5271d1898",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        688
+      ],
+      "id": "f6f30474-88f2-477d-8f20-c4af1a745c9f",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "eUIXqXcd4aCIoLkb",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "numberOfItems": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserItemList",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        736
+      ],
+      "id": "642e1312-c302-4d0d-a6e7-a6c922da99f8",
+      "name": "Item List Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "009ecc2c-e9d3-4fd2-a192-3590d1d945dc",
+              "leftValue": "={{ $('Buscar usuario').item.json.body.tiene_saldo_inicial }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        16
+      ],
+      "id": "1de00dcd-d457-49e9-b2d2-ba772c6e7548",
+      "name": "has_initial_amount"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        -416
+      ],
+      "id": "40855cff-f020-4a5f-9846-49892c64f69d",
+      "name": "Get a file1",
+      "webhookId": "45b269eb-6069-46fe-b07b-e4c6731caa4d",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1296,
+        -416
+      ],
+      "id": "38bccaa5-9a8d-404f-8cbd-baab6ec82e3b",
+      "name": "Transcribe a Recording1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Xxhj4sReuiND1Wxf",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}{{ $json.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "El usuario te dirá su monto inicial. Tu salida debe ser únicamente el número, con punto decimal y sin símbolos. Ejemplo: \"Tengo 100 dólares\" -> 100. Ejemplo 2: \"tengo 10 dólares con 3 centavos\" -> 10.03. Ejemplo 3: \"no tengo nada\" -> 0"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1264,
+        -160
+      ],
+      "id": "df5bd489-a53f-4db8-9383-b13327b02f91",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        16
+      ],
+      "id": "bbdcedfa-a65c-47cd-8f01-4af755030194",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "eUIXqXcd4aCIoLkb",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "numberOfItems": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserItemList",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        64
+      ],
+      "id": "9afd42a2-1627-47c9-8027-1923f474d5a3",
+      "name": "Item List Output Parser1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7fd4245b-c9d3-4499-89ed-6f6828f5da08",
+              "leftValue": "={{ $('Telegram Trigger').item.json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -192
+      ],
+      "id": "5c0efb0f-dbfd-40c6-91c2-d9ea83925c2b",
+      "name": "es audio?1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Hé configurado tu saldo inicial en ***${{ $json.monto }}***\nAhora podrás:\n\n✅ Registrar Ingresos y Egresos\n\n💵 Consultar saldo\n\n👀 Consultar cuánto has gastado a lo largo del día",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1776,
+        -416
+      ],
+      "id": "77a4af3c-2700-4fde-a177-cf94781f853b",
+      "name": "Send a text message6",
+      "webhookId": "23577e95-9922-4474-b22b-033b1de5d727",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nitem.binary.data.fileName = 'audio.ogg';\nitem.binary.data.fileExtension = 'ogg';\nreturn [item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        176
+      ],
+      "id": "44af1cc7-13e7-4272-bf83-448464a9e923",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tidigNdqK6XtwMxJ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tidigNdqK6XtwMxJ",
+          "cachedResultName": "bot_registrador"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "usuario": "={{ $('Buscar usuario').item.json.body.id }}",
+            "user_message": "={{ $('Telegram Trigger').item.json.message.text || $('Transcribe a Recording').item.json.text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "usuario",
+              "displayName": "usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2176,
+        480
+      ],
+      "id": "d3232bb7-1bf6-4881-916d-87fd1c797a11",
+      "name": "Registrar"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3b543db6-4b70-48b6-b0a8-b1ff06465ea1",
+              "name": "backend_url",
+              "value": "http://backend:8000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        560
+      ],
+      "id": "fb4a748b-35fe-4a0c-85e5-8d128e26f30a",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.backend_url }}/users/telegram/{{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        368,
+        560
+      ],
+      "id": "31694521-e36d-4768-bbdd-ff651431b161",
+      "name": "Buscar usuario",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.backend_url }}/users/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ nombre: $('Telegram Trigger').item.json.message.from.first_name || 'Usuario', telegram_id: String($('Telegram Trigger').item.json.message.chat.id) }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1104,
+        656
+      ],
+      "id": "06d07dfb-fb99-4000-84d6-6eac2aaaa0c6",
+      "name": "Crear usuario",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.backend_url }}/transactions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $('Buscar usuario').item.json.body.id, tipo_movimiento: 'INGRESO', monto: Number(String($json.text).trim().replace(',', '.')), descripcion: 'Saldo inicial' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        -416
+      ],
+      "id": "a042ddbb-d7d1-4736-a33b-09f1bd93d1b9",
+      "name": "Registrar saldo inicial",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.backend_url }}/kpis",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('Buscar usuario').item.json.body.id }}"
+            },
+            {
+              "name": "fecha_inicio",
+              "value": "={{ $today.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2176,
+        288
+      ],
+      "id": "73a35d5e-843c-4ae0-94b5-9b332dba175b",
+      "name": "Egresos de hoy",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.backend_url }}/kpis",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('Buscar usuario').item.json.body.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2176,
+        688
+      ],
+      "id": "0af65b43-a656-472f-8f33-80bf7f001e4e",
+      "name": "Consultar saldo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Backend Finanzas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=No te entendí ñaño 🤔. Puedes contarme un gasto o un ingreso, preguntarme tu saldo o cuánto has gastado hoy.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2176,
+        880
+      ],
+      "id": "e2aff2e2-cf57-4a36-baee-6801b3150a88",
+      "name": "Responder otro",
+      "webhookId": "aab669b2-0c40-4b91-a888-82652f8ef272",
+      "credentials": {
+        "telegramApi": {
+          "id": "jFPJ8P4ixv37GCrW",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Buscar usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar usuario": {
+      "main": [
+        [
+          {
+            "node": "usuario existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "usuario existe?": {
+      "main": [
+        [
+          {
+            "node": "has_initial_amount",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message4": {
+      "main": [
+        [
+          {
+            "node": "Crear usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "has_initial_amount": {
+      "main": [
+        [
+          {
+            "node": "es audio?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "es audio?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "es audio?": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a Recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a Recording": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Item List Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Egresos de hoy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar saldo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder otro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Egresos de hoy": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar": {
+      "main": [
+        [
+          {
+            "node": "es ingreso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "es ingreso?": {
+      "main": [
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar saldo": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "es audio?1": {
+      "main": [
+        [
+          {
+            "node": "Get a file1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file1": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a Recording1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a Recording1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Item List Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Registrar saldo inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar saldo inicial": {
+      "main": [
+        [
+          {
+            "node": "Send a text message6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bba6aad0-d9f6-4443-b29b-bb4a5e41e16e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "969530403be8ac7acb49032ea302a3b4bf67fd1171ad42741f30073541a28e48"
+  },
+  "nodeGroups": [],
+  "id": "etE2tz7UEpQFtcue",
+  "tags": []
+}

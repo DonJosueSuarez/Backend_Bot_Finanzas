@@ -11,7 +11,6 @@ build/
 develop-eggs/
 dist/
 downloads/
-json_n8n
 eggs/
 .eggs/
 lib/
