@@ -723,7 +723,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "usuario": "={{ $('Buscar usuario').item.json.body.id }}",
+            "usuario": "={{ String($('Buscar usuario').item.json.body.id) }}",
             "user_message": "={{ $('Telegram Trigger').item.json.message.text || $('Transcribe a Recording').item.json.text }}"
           },
           "matchingColumns": [],

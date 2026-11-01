@@ -2,12 +2,70 @@ from app.repository.base_financial_repository import IFinancialRepository
 from decimal import Decimal
 import math
 from typing import Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 from zoneinfo import ZoneInfo
+from app.model.enums import TipoMovimiento
+from app.core.exceptions import AppException
+
+LOCAL_TZ = ZoneInfo("America/Guayaquil")
+# El bot lista los movimientos solo si caben en un mensaje de Telegram
+MAX_MOVIMIENTOS = 20
 
 class FinancialService:
     def __init__(self, repository: IFinancialRepository):
         self.repository = repository
+
+    def get_period_summary(
+        self,
+        user_id: int,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        tipo_movimiento: TipoMovimiento = TipoMovimiento.EGRESO
+    ):
+        hoy = datetime.now(LOCAL_TZ).date()
+        fecha_desde = fecha_desde or hoy.replace(day=1)
+        fecha_hasta = fecha_hasta or hoy
+        if fecha_desde > fecha_hasta:
+            raise AppException("fecha_desde no puede ser posterior a fecha_hasta")
+
+        # Días completos en hora local: [desde 00:00, hasta + 1 día 00:00)
+        inicio = datetime.combine(fecha_desde, time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
+        fin = datetime.combine(fecha_hasta + timedelta(days=1), time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
+
+        categorias = self.repository.get_category_breakdown(user_id, tipo_movimiento, inicio, fin)
+        mayor = self.repository.get_largest_transaction(user_id, tipo_movimiento, inicio, fin)
+        ultimos = self.repository.get_latest_transactions(user_id, tipo_movimiento, inicio, fin, MAX_MOVIMIENTOS)
+
+        def movimiento(t):
+            return {
+                "fecha": t.fecha.astimezone(LOCAL_TZ).date(),
+                "descripcion": t.descripcion,
+                "monto": t.monto,
+                "categoria": t.category.nombre.value if t.category else None,
+            }
+
+        return {
+            "fecha_desde": fecha_desde,
+            "fecha_hasta": fecha_hasta,
+            "tipo_movimiento": tipo_movimiento,
+            "total": sum((c.total for c in categorias), Decimal(0)),
+            "cantidad": sum(c.cantidad for c in categorias),
+            "por_categoria": [
+                {
+                    "categoria": c.categoria.value if c.categoria else None,
+                    "total": c.total,
+                    "cantidad": c.cantidad,
+                }
+                for c in categorias
+            ],
+            # Necesidad/deseo solo existe en egresos
+            "por_tipo_gasto": (
+                self.repository.get_totals_by_tipo_gasto(user_id, inicio, fin)
+                if tipo_movimiento == TipoMovimiento.EGRESO else None
+            ),
+            "mayor": movimiento(mayor) if mayor else None,
+            "movimientos": [movimiento(t) for t in ultimos],
+        }
         
     """     def get_balance(self, user_id: int) -> Dict[str, Decimal]:
         return self.repository.get_balance(user_id) """

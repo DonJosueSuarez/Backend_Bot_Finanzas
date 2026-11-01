@@ -3,10 +3,10 @@ from decimal import Decimal
 from app.model.transaction import TransactionORM
 from app.model.category import CategoryORM
 from app.model.enums import TipoMovimiento, TipoGasto
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timedelta
 from app.repository.base_financial_repository import IFinancialRepository
-from typing import Dict
+from typing import Dict, List, Optional
 
 class PostgresFinancialRepository(IFinancialRepository):
     def __init__(self, db: Session):
@@ -74,4 +74,54 @@ class PostgresFinancialRepository(IFinancialRepository):
                     TransactionORM.fecha < fecha_fin
                 )
                 .group_by(CategoryORM.nombre)
+                .all())
+
+    def _period_filter(self, query, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime):
+        return query.filter(
+            TransactionORM.user_id == user_id,
+            TransactionORM.tipo_movimiento == tipo_movimiento,
+            TransactionORM.fecha >= fecha_inicio,
+            TransactionORM.fecha < fecha_fin
+        )
+
+    def get_category_breakdown(self, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime):
+        # outerjoin: los ingresos suelen no tener categoría y también deben sumar
+        query = (self.db.query(
+                    CategoryORM.nombre.label("categoria"),
+                    func.sum(TransactionORM.monto).label("total"),
+                    func.count(TransactionORM.id).label("cantidad")
+                )
+                .select_from(TransactionORM)
+                .outerjoin(TransactionORM.category))
+        return (self._period_filter(query, user_id, tipo_movimiento, fecha_inicio, fecha_fin)
+                .group_by(CategoryORM.nombre)
+                .order_by(func.sum(TransactionORM.monto).desc())
+                .all())
+
+    def get_totals_by_tipo_gasto(self, user_id: int, fecha_inicio: datetime, fecha_fin: datetime) -> Dict[str, Decimal]:
+        query = self.db.query(
+            TransactionORM.tipo_gasto,
+            func.sum(TransactionORM.monto).label("total")
+        )
+        result = (self._period_filter(query, user_id, TipoMovimiento.EGRESO, fecha_inicio, fecha_fin)
+                  .group_by(TransactionORM.tipo_gasto)
+                  .all())
+
+        totals = {t.value: Decimal(0) for t in TipoGasto}
+        for r in result:
+            if r.tipo_gasto:
+                totals[r.tipo_gasto.value] = r.total
+        return totals
+
+    def get_largest_transaction(self, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime) -> Optional[TransactionORM]:
+        query = self.db.query(TransactionORM).options(joinedload(TransactionORM.category))
+        return (self._period_filter(query, user_id, tipo_movimiento, fecha_inicio, fecha_fin)
+                .order_by(TransactionORM.monto.desc())
+                .first())
+
+    def get_latest_transactions(self, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime, limit: int) -> List[TransactionORM]:
+        query = self.db.query(TransactionORM).options(joinedload(TransactionORM.category))
+        return (self._period_filter(query, user_id, tipo_movimiento, fecha_inicio, fecha_fin)
+                .order_by(TransactionORM.fecha.desc())
+                .limit(limit)
                 .all())

@@ -139,6 +139,7 @@ Todas las rutas exigen el header `X-API-Key` con el valor de `API_KEY`.
 | `POST` | `/transactions/bulk` | Carga de varias transacciones (migraciones) |
 | `GET` | `/transactions?user_id=&limit=&offset=` | Listado paginado `{data, total}` |
 | `GET` | `/kpis?user_id=&fecha_inicio=&fecha_fin=` | Saldo, egresos del periodo, tasa de ahorro, días de supervivencia, gasto por categoría |
+| `GET` | `/transactions/summary?user_id=&fecha_desde=&fecha_hasta=&tipo_movimiento=` | Resumen de un rango de días para el bot: total, por categoría, necesidad/deseo, el más alto y los 20 últimos |
 
 ### Cuerpos de ejemplo
 
@@ -186,6 +187,29 @@ Categorías válidas: `ALIMENTACION HOGAR`, `PIQUEOS Y COMIDA FUERA`, `TRANSPORT
 ```
 
 Sin fechas, el periodo va desde el día 1 del mes (hora de Guayaquil) hasta ahora. `saldo_actual` es histórico, no solo del periodo. Envía las fechas en ISO **con zona horaria** (`2026-10-29T00:00:00-05:00`).
+
+### Respuesta de `/transactions/summary`
+
+```json
+{
+  "fecha_desde": "2026-11-01",
+  "fecha_hasta": "2026-11-15",
+  "tipo_movimiento": "EGRESO",
+  "total": 63.7,
+  "cantidad": 3,
+  "por_categoria": [
+    { "categoria": "ALIMENTACION HOGAR", "total": 48.2, "cantidad": 1 },
+    { "categoria": "PIQUEOS Y COMIDA FUERA", "total": 12.5, "cantidad": 1 }
+  ],
+  "por_tipo_gasto": { "NECESIDAD": 51.2, "DESEO": 12.5 },
+  "mayor": { "fecha": "2026-11-12", "descripcion": "Supermercado", "monto": 48.2, "categoria": "ALIMENTACION HOGAR" },
+  "movimientos": [ { "fecha": "2026-11-12", "descripcion": "Supermercado", "monto": 48.2, "categoria": "ALIMENTACION HOGAR" } ]
+}
+```
+
+- **Fechas:** son días (`YYYY-MM-DD`) en hora de Ecuador y ambos extremos se incluyen. Sin fechas, va del día 1 del mes hasta hoy. Si `fecha_desde` es posterior a `fecha_hasta`, responde `400`.
+- **`tipo_movimiento`:** por defecto `EGRESO`. Con `INGRESO`, `por_tipo_gasto` viene en `null` y la categoría suele ser `null`.
+- **`movimientos`:** trae como máximo los 20 más recientes. El bot solo los muestra cuando `cantidad` es 20 o menos.
 
 ## Integración con n8n
 
@@ -247,6 +271,9 @@ Esto es lo que ya hace `json_n8n/backend/bot-finanzas.json`. Las rutas son relat
 | `Call 'consultar_egresos_hoy'` | **Egresos de hoy**: GET `/kpis?user_id=…&fecha_inicio={{ $today.toISO() }}`. El mensaje usa `egresos_totales` |
 | `Registrar` (subflujo) | Recibe `usuario` = `id` interno, ya no el `telegram_id` |
 | Regla `initial_amount` del Switch (sin conectar) | Eliminada. La salida *fallback* (`otro`) va a **Responder otro**, que explica qué puede hacer el bot |
+| — (nueva intención `reporte`) | **Extraer rango** (LLM con la fecha de hoy en el prompt) → **Parsear rango** (Code, mes en curso si el JSON falla) → **Resumen periodo**: GET `/transactions/summary` → **Formatear resumen** (Code, HTML con `<pre>`) → **Enviar resumen** (Telegram, `parse_mode=HTML`) |
+
+El LLM nunca escribe SQL: solo extrae el rango de fechas, y el backend filtra siempre por el `user_id` de quien escribe. La respuesta es un mensaje de texto y no un `.xlsx`, porque los usuarios leen desde el teléfono.
 
 Arreglos que se aprovecharon de paso:
 

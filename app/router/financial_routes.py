@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
+from app.model.enums import TipoMovimiento
 
 from app.database.postgresql_connection import get_db
 from app.repository.sqlalchemy_financial_repository import PostgresFinancialRepository
@@ -21,3 +22,14 @@ def get_kpi(
     service: FinancialService = Depends(get_financial_service)
 ):
     return service.get_dashboard_summary(user_id, fecha_inicio, fecha_fin)
+
+# Resumen de un rango de días (hora de Ecuador, ambos extremos incluidos) para el bot
+@router.get("/transactions/summary")
+def get_period_summary(
+    user_id: int,
+    fecha_desde: Optional[date] = None,
+    fecha_hasta: Optional[date] = None,
+    tipo_movimiento: TipoMovimiento = TipoMovimiento.EGRESO,
+    service: FinancialService = Depends(get_financial_service)
+):
+    return service.get_period_summary(user_id, fecha_desde, fecha_hasta, tipo_movimiento)
