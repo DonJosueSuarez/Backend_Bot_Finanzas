@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from typing import Optional
@@ -33,3 +33,18 @@ def get_period_summary(
     service: FinancialService = Depends(get_financial_service)
 ):
     return service.get_period_summary(user_id, fecha_desde, fecha_hasta, tipo_movimiento)
+
+# Excel con los movimientos (hoja 1) y un dashboard (hoja 2); el bot lo envía como documento
+@router.get("/transactions/export")
+def export_period_excel(
+    user_id: int,
+    fecha_desde: Optional[date] = None,
+    fecha_hasta: Optional[date] = None,
+    service: FinancialService = Depends(get_financial_service)
+):
+    nombre, contenido = service.export_period_excel(user_id, fecha_desde, fecha_hasta)
+    return Response(
+        content=contenido,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )

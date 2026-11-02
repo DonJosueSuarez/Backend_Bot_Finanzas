@@ -6,6 +6,7 @@ from datetime import datetime, date, time, timedelta
 from zoneinfo import ZoneInfo
 from app.model.enums import TipoMovimiento
 from app.core.exceptions import AppException
+from app.report.excel_report import build_excel_report
 
 LOCAL_TZ = ZoneInfo("America/Guayaquil")
 # El bot lista los movimientos solo si caben en un mensaje de Telegram
@@ -15,13 +16,8 @@ class FinancialService:
     def __init__(self, repository: IFinancialRepository):
         self.repository = repository
 
-    def get_period_summary(
-        self,
-        user_id: int,
-        fecha_desde: Optional[date] = None,
-        fecha_hasta: Optional[date] = None,
-        tipo_movimiento: TipoMovimiento = TipoMovimiento.EGRESO
-    ):
+    @staticmethod
+    def _rango(fecha_desde: Optional[date], fecha_hasta: Optional[date]):
         hoy = datetime.now(LOCAL_TZ).date()
         fecha_desde = fecha_desde or hoy.replace(day=1)
         fecha_hasta = fecha_hasta or hoy
@@ -31,6 +27,37 @@ class FinancialService:
         # Días completos en hora local: [desde 00:00, hasta + 1 día 00:00)
         inicio = datetime.combine(fecha_desde, time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
         fin = datetime.combine(fecha_hasta + timedelta(days=1), time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
+        return fecha_desde, fecha_hasta, inicio, fin
+
+    def export_period_excel(
+        self,
+        user_id: int,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None
+    ):
+        fecha_desde, fecha_hasta, inicio, fin = self._rango(fecha_desde, fecha_hasta)
+        movimientos = [
+            {
+                "fecha": t.fecha.astimezone(LOCAL_TZ).date(),
+                "tipo_movimiento": t.tipo_movimiento.value,
+                "descripcion": t.descripcion,
+                "categoria": t.category.nombre.value if t.category else None,
+                "tipo_gasto": t.tipo_gasto.value if t.tipo_gasto else None,
+                "monto": t.monto,
+            }
+            for t in self.repository.get_transactions_in_period(user_id, inicio, fin)
+        ]
+        contenido = build_excel_report(movimientos, fecha_desde, fecha_hasta, datetime.now(LOCAL_TZ))
+        return f"reporte_{fecha_desde}_{fecha_hasta}.xlsx", contenido
+
+    def get_period_summary(
+        self,
+        user_id: int,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        tipo_movimiento: TipoMovimiento = TipoMovimiento.EGRESO
+    ):
+        fecha_desde, fecha_hasta, inicio, fin = self._rango(fecha_desde, fecha_hasta)
 
         categorias = self.repository.get_category_breakdown(user_id, tipo_movimiento, inicio, fin)
         mayor = self.repository.get_largest_transaction(user_id, tipo_movimiento, inicio, fin)

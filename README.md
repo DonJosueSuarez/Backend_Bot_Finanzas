@@ -140,6 +140,7 @@ Todas las rutas exigen el header `X-API-Key` con el valor de `API_KEY`.
 | `GET` | `/transactions?user_id=&limit=&offset=` | Listado paginado `{data, total}` |
 | `GET` | `/kpis?user_id=&fecha_inicio=&fecha_fin=` | Saldo, egresos del periodo, tasa de ahorro, días de supervivencia, gasto por categoría |
 | `GET` | `/transactions/summary?user_id=&fecha_desde=&fecha_hasta=&tipo_movimiento=` | Resumen de un rango de días para el bot: total, por categoría, necesidad/deseo, el más alto y los 20 últimos |
+| `GET` | `/transactions/export?user_id=&fecha_desde=&fecha_hasta=` | Excel (`.xlsx`) del rango con ingresos y egresos: hoja *Movimientos* y hoja *Dashboard* con indicadores y gráficos |
 
 ### Cuerpos de ejemplo
 
@@ -211,6 +212,14 @@ Sin fechas, el periodo va desde el día 1 del mes (hora de Guayaquil) hasta ahor
 - **`tipo_movimiento`:** por defecto `EGRESO`. Con `INGRESO`, `por_tipo_gasto` viene en `null` y la categoría suele ser `null`.
 - **`movimientos`:** trae como máximo los 20 más recientes. El bot solo los muestra cuando `cantidad` es 20 o menos.
 
+### Excel de `/transactions/export`
+
+Mismas reglas de fechas que el resumen. Lo genera `app/report/excel_report.py` con `openpyxl`.
+
+- **Hoja *Movimientos*:** una tabla de Excel con filtros y filas alternadas, montos en verde (ingreso) o rojo (egreso), y los totales de ingresos, egresos y balance.
+- **Hoja *Dashboard*:** cinco tarjetas (ingresos, egresos, balance, movimientos y gasto diario promedio), gasto por categoría con barras, necesidad vs deseo en dona y la evolución en línea (por día hasta 62 días, por mes si el rango es mayor).
+- **Totales:** se escriben como valores y no como fórmulas, para que también se vean en los visores del teléfono.
+
 ## Integración con n8n
 
 Los nodos `Data Table` (`sesion_usuario`, `registro`, `bot_finanzas`) se reemplazan por nodos **HTTP Request**.
@@ -271,9 +280,11 @@ Esto es lo que ya hace `json_n8n/backend/bot-finanzas.json`. Las rutas son relat
 | `Call 'consultar_egresos_hoy'` | **Egresos de hoy**: GET `/kpis?user_id=…&fecha_inicio={{ $today.toISO() }}`. El mensaje usa `egresos_totales` |
 | `Registrar` (subflujo) | Recibe `usuario` = `id` interno, ya no el `telegram_id` |
 | Regla `initial_amount` del Switch (sin conectar) | Eliminada. La salida *fallback* (`otro`) va a **Responder otro**, que explica qué puede hacer el bot |
-| — (nueva intención `reporte`) | **Extraer rango** (LLM con la fecha de hoy en el prompt) → **Parsear rango** (Code, mes en curso si el JSON falla) → **Resumen periodo**: GET `/transactions/summary` → **Formatear resumen** (Code, HTML con `<pre>`) → **Enviar resumen** (Telegram, `parse_mode=HTML`) |
+| — (nueva intención `reporte`) | **Extraer rango** (LLM con la fecha de hoy en el prompt; devuelve fechas, tipo y `formato`) → **Parsear rango** (Code, mes en curso y texto si el JSON falla) → **pide archivo?** |
+| — rama texto | **Resumen periodo**: GET `/transactions/summary` → **Formatear resumen** (Code, HTML con `<pre>`) → **Enviar resumen** (Telegram, `parse_mode=HTML`) |
+| — rama archivo | **Descargar Excel**: GET `/transactions/export` con respuesta *File* → **Enviar Excel** (Telegram *Send Document*) |
 
-El LLM nunca escribe SQL: solo extrae el rango de fechas, y el backend filtra siempre por el `user_id` de quien escribe. La respuesta es un mensaje de texto y no un `.xlsx`, porque los usuarios leen desde el teléfono.
+El LLM nunca escribe SQL: solo extrae el rango de fechas, y el backend filtra siempre por el `user_id` de quien escribe. Por defecto la respuesta es un mensaje de texto, porque los usuarios leen desde el teléfono. El Excel se envía solo si lo piden ("mándame el Excel de octubre").
 
 Arreglos que se aprovecharon de paso:
 

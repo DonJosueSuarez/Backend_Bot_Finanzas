@@ -36,5 +36,9 @@ class IFinancialRepository(ABC):
         pass
 
     @abstractmethod
+    def get_transactions_in_period(self, user_id: int, fecha_inicio: datetime, fecha_fin: datetime) -> List[TransactionORM]:
+        pass
+
+    @abstractmethod
     def get_latest_transactions(self, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime, limit: int) -> List[TransactionORM]:
         pass

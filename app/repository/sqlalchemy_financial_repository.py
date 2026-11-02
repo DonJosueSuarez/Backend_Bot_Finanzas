@@ -119,6 +119,18 @@ class PostgresFinancialRepository(IFinancialRepository):
                 .order_by(TransactionORM.monto.desc())
                 .first())
 
+    def get_transactions_in_period(self, user_id: int, fecha_inicio: datetime, fecha_fin: datetime) -> List[TransactionORM]:
+        # Ingresos y egresos juntos, en orden cronológico (para el Excel)
+        return (self.db.query(TransactionORM)
+                .options(joinedload(TransactionORM.category))
+                .filter(
+                    TransactionORM.user_id == user_id,
+                    TransactionORM.fecha >= fecha_inicio,
+                    TransactionORM.fecha < fecha_fin
+                )
+                .order_by(TransactionORM.fecha, TransactionORM.id)
+                .all())
+
     def get_latest_transactions(self, user_id: int, tipo_movimiento: TipoMovimiento, fecha_inicio: datetime, fecha_fin: datetime, limit: int) -> List[TransactionORM]:
         query = self.db.query(TransactionORM).options(joinedload(TransactionORM.category))
         return (self._period_filter(query, user_id, tipo_movimiento, fecha_inicio, fecha_fin)
