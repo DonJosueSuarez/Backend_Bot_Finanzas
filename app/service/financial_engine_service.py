@@ -2,13 +2,14 @@ from app.repository.base_financial_repository import IFinancialRepository
 from decimal import Decimal
 import math
 from typing import Optional
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 from app.model.enums import TipoMovimiento
 from app.core.exceptions import AppException
+from app.core.fechas import LOCAL_TZ, hoy_local, inicio_dia_utc, fin_dia_utc, fecha_local
 from app.report.excel_report import build_excel_report
+from app.service.series import evolucion
 
-LOCAL_TZ = ZoneInfo("America/Guayaquil")
 # El bot lista los movimientos solo si caben en un mensaje de Telegram
 MAX_MOVIMIENTOS = 20
 
@@ -18,27 +19,19 @@ class FinancialService:
 
     @staticmethod
     def _rango(fecha_desde: Optional[date], fecha_hasta: Optional[date]):
-        hoy = datetime.now(LOCAL_TZ).date()
+        hoy = hoy_local()
         fecha_desde = fecha_desde or hoy.replace(day=1)
         fecha_hasta = fecha_hasta or hoy
         if fecha_desde > fecha_hasta:
             raise AppException("fecha_desde no puede ser posterior a fecha_hasta")
 
         # Días completos en hora local: [desde 00:00, hasta + 1 día 00:00)
-        inicio = datetime.combine(fecha_desde, time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
-        fin = datetime.combine(fecha_hasta + timedelta(days=1), time.min, LOCAL_TZ).astimezone(ZoneInfo("UTC"))
-        return fecha_desde, fecha_hasta, inicio, fin
+        return fecha_desde, fecha_hasta, inicio_dia_utc(fecha_desde), fin_dia_utc(fecha_hasta)
 
-    def export_period_excel(
-        self,
-        user_id: int,
-        fecha_desde: Optional[date] = None,
-        fecha_hasta: Optional[date] = None
-    ):
-        fecha_desde, fecha_hasta, inicio, fin = self._rango(fecha_desde, fecha_hasta)
-        movimientos = [
+    def _movimientos_del_periodo(self, user_id: int, inicio: datetime, fin: datetime):
+        return [
             {
-                "fecha": t.fecha.astimezone(LOCAL_TZ).date(),
+                "fecha": fecha_local(t.fecha),
                 "tipo_movimiento": t.tipo_movimiento.value,
                 "descripcion": t.descripcion,
                 "categoria": t.category.nombre.value if t.category else None,
@@ -47,6 +40,15 @@ class FinancialService:
             }
             for t in self.repository.get_transactions_in_period(user_id, inicio, fin)
         ]
+
+    def export_period_excel(
+        self,
+        user_id: int,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None
+    ):
+        fecha_desde, fecha_hasta, inicio, fin = self._rango(fecha_desde, fecha_hasta)
+        movimientos = self._movimientos_del_periodo(user_id, inicio, fin)
         contenido = build_excel_report(movimientos, fecha_desde, fecha_hasta, datetime.now(LOCAL_TZ))
         return f"reporte_{fecha_desde}_{fecha_hasta}.xlsx", contenido
 
@@ -65,7 +67,7 @@ class FinancialService:
 
         def movimiento(t):
             return {
-                "fecha": t.fecha.astimezone(LOCAL_TZ).date(),
+                "fecha": fecha_local(t.fecha),
                 "descripcion": t.descripcion,
                 "monto": t.monto,
                 "categoria": t.category.nombre.value if t.category else None,
@@ -92,6 +94,8 @@ class FinancialService:
             ),
             "mayor": movimiento(mayor) if mayor else None,
             "movimientos": [movimiento(t) for t in ultimos],
+            # Ingresos y egresos juntos, para el gráfico de línea del dashboard web
+            "evolucion": evolucion(self._movimientos_del_periodo(user_id, inicio, fin), fecha_desde, fecha_hasta),
         }
         
     """     def get_balance(self, user_id: int) -> Dict[str, Decimal]:
@@ -105,6 +109,12 @@ class FinancialService:
 
         if not fecha_fin:
             fecha_fin = now_local
+
+        # Una fecha sin zona horaria se entiende en hora de Ecuador, no en la del servidor
+        if fecha_inicio.tzinfo is None:
+            fecha_inicio = fecha_inicio.replace(tzinfo=local_tz)
+        if fecha_fin.tzinfo is None:
+            fecha_fin = fecha_fin.replace(tzinfo=local_tz)
 
         # Convertimos a UTC antes de enviar al repository
         fecha_inicio = fecha_inicio.astimezone(ZoneInfo("UTC"))

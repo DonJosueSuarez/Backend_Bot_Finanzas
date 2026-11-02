@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.repository.base_transaction_repository import ITransactionRepository
+from app.repository.base_transaction_repository import ITransactionRepository, TransactionFilters
 from app.repository.base_category_repository import ICategoryRepository
 from app.dto.transaction_dtos import TransactionCreate, TransactionUpdate
 from app.model.transaction import TransactionORM
@@ -99,10 +99,11 @@ class TransactionService:
         self,
         user_id: int,
         limit: int = 10,
-        offset: int = 0
+        offset: int = 0,
+        filters: Optional[TransactionFilters] = None
     ) -> List[TransactionORM]:
 
-        return self.repository.get_by_user_id(user_id, limit, offset)
+        return self.repository.get_by_user_id(user_id, limit, offset, filters)
 
     # -------------------------
     # UPDATE
@@ -144,5 +145,5 @@ class TransactionService:
 
         self.db.commit()
         
-    def count_by_user_id(self, user_id: int) -> int:
-        return self.repository.count_by_user_id(user_id)
+    def count_by_user_id(self, user_id: int, filters: Optional[TransactionFilters] = None) -> int:
+        return self.repository.count_by_user_id(user_id, filters)

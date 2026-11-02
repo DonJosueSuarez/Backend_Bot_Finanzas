@@ -122,12 +122,21 @@ La imagen usa `python:3.13-slim`, que es multi-arquitectura, y todas las depende
 
 ## Autenticación
 
-Todas las rutas exigen el header `X-API-Key` con el valor de `API_KEY`.
+Hay dos formas de autenticarse (`app/core/security.py`):
+
+| Quién | Header | Usuario |
+|---|---|---|
+| **n8n** | `X-API-Key: <API_KEY>` | El que indique `?user_id=`. Puede registrar usuarios y transacciones |
+| **Dashboard web (Telegram Mini App)** | `Authorization: tma <initData>` | El dueño del `initData`. El backend valida la firma con `TELEGRAM_BOT_TOKEN` y busca al usuario por su `telegram_id`. Solo puede leer sus propios datos |
 
 | Situación | Respuesta |
 |---|---|
-| Header ausente o incorrecto | `401 {"status": "error", "message": "API key inválida o ausente"}` |
-| `API_KEY` no definida en el servidor | `500` |
+| Sin header, API key incorrecta, firma inválida o `initData` de más de 24 h | `401` |
+| La Mini App pide otro `user_id` o intenta registrar algo | `403` |
+| n8n no envía `user_id` en una lectura | `422` |
+| `API_KEY` o `TELEGRAM_BOT_TOKEN` no definidos en el servidor | `500` |
+
+Otras variables: `CORS_ORIGINS` (orígenes del dashboard separados por coma; por defecto `localhost:4200`). En producción la web y la API van por el mismo dominio (nginx reenvía `/api`), así que no hace falta CORS.
 
 ## Endpoints
 
@@ -137,7 +146,8 @@ Todas las rutas exigen el header `X-API-Key` con el valor de `API_KEY`.
 | `POST` | `/users/` | Registrar usuario nuevo |
 | `POST` | `/transactions` | Saldo inicial y registro de ingresos/egresos |
 | `POST` | `/transactions/bulk` | Carga de varias transacciones (migraciones) |
-| `GET` | `/transactions?user_id=&limit=&offset=` | Listado paginado `{data, total}` |
+| `GET` | `/users/me` | Usuario actual (el del `initData`, o el de `?user_id` con la API key) |
+| `GET` | `/transactions?user_id=&limit=&offset=&fecha_desde=&fecha_hasta=&tipo_movimiento=&categoria=&q=` | Listado paginado `{data, total}`, más recientes primero. Filtros opcionales; `q` busca en la descripción; `limit` máximo 200 |
 | `GET` | `/kpis?user_id=&fecha_inicio=&fecha_fin=` | Saldo, egresos del periodo, tasa de ahorro, días de supervivencia, gasto por categoría |
 | `GET` | `/transactions/summary?user_id=&fecha_desde=&fecha_hasta=&tipo_movimiento=` | Resumen de un rango de días para el bot: total, por categoría, necesidad/deseo, el más alto y los 20 últimos |
 | `GET` | `/transactions/export?user_id=&fecha_desde=&fecha_hasta=` | Excel (`.xlsx`) del rango con ingresos y egresos: hoja *Movimientos* y hoja *Dashboard* con indicadores y gráficos |
@@ -211,6 +221,7 @@ Sin fechas, el periodo va desde el día 1 del mes (hora de Guayaquil) hasta ahor
 - **Fechas:** son días (`YYYY-MM-DD`) en hora de Ecuador y ambos extremos se incluyen. Sin fechas, va del día 1 del mes hasta hoy. Si `fecha_desde` es posterior a `fecha_hasta`, responde `400`.
 - **`tipo_movimiento`:** por defecto `EGRESO`. Con `INGRESO`, `por_tipo_gasto` viene en `null` y la categoría suele ser `null`.
 - **`movimientos`:** trae como máximo los 20 más recientes. El bot solo los muestra cuando `cantidad` es 20 o menos.
+- **`evolucion`:** `{agrupacion: "dia" | "mes", puntos: [{periodo, etiqueta, ingresos, egresos}]}` con ingresos y egresos juntos, para el gráfico de línea del dashboard. Es la misma serie que usa la hoja *Dashboard* del Excel (`app/service/series.py`).
 
 ### Excel de `/transactions/export`
 

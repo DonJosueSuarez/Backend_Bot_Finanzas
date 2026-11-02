@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO
 from typing import Dict, List
@@ -15,6 +15,8 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
+from app.service.series import MESES, evolucion
+
 AZUL_OSCURO = "1F3864"
 AZUL = "2E75B6"
 AZUL_CLARO = "DDEBF7"
@@ -27,7 +29,6 @@ NARANJA = "ED7D31"
 MONEDA = '"$"#,##0.00'
 PORCENTAJE = "0.0%"
 FECHA = "dd/mm/yyyy"
-MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
 NOMBRES_CATEGORIA = {
     "ALIMENTACION HOGAR": "Alimentación hogar",
@@ -40,9 +41,6 @@ NOMBRES_CATEGORIA = {
     "EDUCACION Y TRABAJO": "Educación y trabajo",
     "VARIOS E IMPREVISTOS": "Varios e imprevistos",
 }
-
-# Hasta este número de días la evolución va por día; con más, por mes
-MAX_DIAS_DETALLE = 62
 
 BORDE_FINO = Side(style="thin", color="D9D9D9")
 
@@ -161,27 +159,6 @@ def _tarjeta(ws, columna: int, etiqueta: str, valor, formato: str, color: str) -
     ws.cell(row=5, column=columna + 1).fill = PatternFill("solid", fgColor=GRIS_CLARO)
 
 
-def _evolucion(movimientos: List[Dict], desde: date, hasta: date):
-    dias = (hasta - desde).days + 1
-    por_dia = dias <= MAX_DIAS_DETALLE
-    clave = (lambda d: d) if por_dia else (lambda d: date(d.year, d.month, 1))
-
-    # Todos los periodos del rango, aunque no tengan movimientos, para que la línea sea continua
-    periodos, actual = [], desde
-    while actual <= hasta:
-        if clave(actual) not in periodos:
-            periodos.append(clave(actual))
-        actual += timedelta(days=1)
-
-    totales = defaultdict(lambda: {"INGRESO": Decimal(0), "EGRESO": Decimal(0)})
-    for m in movimientos:
-        totales[clave(m["fecha"])][m["tipo_movimiento"]] += m["monto"]
-
-    etiqueta = (lambda p: f"{p.day:02d}/{p.month:02d}") if por_dia else (lambda p: f"{MESES[p.month - 1]} {p.year}")
-    titulo = "Evolución diaria" if por_dia else "Evolución mensual"
-    return titulo, [(etiqueta(p), totales[p]["INGRESO"], totales[p]["EGRESO"]) for p in periodos]
-
-
 def _sin_ejes_ocultos(chart) -> None:
     # openpyxl 3.1 marca los ejes como borrados y Excel no los dibuja
     chart.x_axis.delete = False
@@ -286,7 +263,9 @@ def _hoja_dashboard(ws, movimientos: List[Dict], desde: date, hasta: date, subti
 
     # --- Evolución en el tiempo
     fila = 42
-    titulo, puntos = _evolucion(movimientos, desde, hasta)
+    serie = evolucion(movimientos, desde, hasta)
+    titulo = "Evolución diaria" if serie["agrupacion"] == "dia" else "Evolución mensual"
+    puntos = [(p["etiqueta"], p["ingresos"], p["egresos"]) for p in serie["puntos"]]
     _seccion(ws, fila, titulo)
     _encabezado(ws, fila + 1, 1, ["Periodo", "Ingresos", "Egresos"])
     for i, punto in enumerate(puntos):
