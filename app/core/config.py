@@ -12,3 +12,6 @@ class Config:
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     # Orígenes del dashboard web, separados por coma
     CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:4200,http://127.0.0.1:4200").split(",") if o.strip()]
+    # "development" habilita /docs y el detalle de los errores; cualquier otro valor es producción
+    ENV = os.getenv("ENV", "production").lower()
+    IS_DEV = ENV == "development"

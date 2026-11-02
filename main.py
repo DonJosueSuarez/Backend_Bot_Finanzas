@@ -20,7 +20,13 @@ Base.metadata.create_all(bind=engine)
 with SessionLocal() as db:
     CategoryService(PostgresCategoryRepository(db), db).ensure_default_categories()
 
-app = FastAPI(dependencies=[Depends(authenticate)])
+# En producción se ocultan /docs, /redoc y /openapi.json para no exponer el mapa de la API
+app = FastAPI(
+    dependencies=[Depends(authenticate)],
+    docs_url="/docs" if Config.IS_DEV else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if Config.IS_DEV else None,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=Config.CORS_ORIGINS,

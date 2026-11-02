@@ -138,6 +138,8 @@ Hay dos formas de autenticarse (`app/core/security.py`):
 
 Otras variables: `CORS_ORIGINS` (orígenes del dashboard separados por coma; por defecto `localhost:4200`). En producción la web y la API van por el mismo dominio (nginx reenvía `/api`), así que no hace falta CORS.
 
+`ENV` controla el modo. Por defecto es `production`: se ocultan `/docs`, `/redoc` y `/openapi.json`, y los errores 500 responden un mensaje genérico mientras el detalle va solo al log del servidor. Con `ENV=development` vuelven la documentación interactiva y el detalle de los errores. Nunca pongas `development` en la Pi.
+
 ## Endpoints
 
 | Método | Ruta | Uso desde el bot |
