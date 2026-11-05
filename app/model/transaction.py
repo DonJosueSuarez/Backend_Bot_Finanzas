@@ -1,6 +1,6 @@
 from app.database.postgresql_connection import Base
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Enum as SAEnum, Boolean, Index
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Enum as SAEnum, Boolean, Index, UniqueConstraint
 from sqlalchemy.sql import func
 from app.model.enums import TipoMovimiento, TipoGasto
 
@@ -15,6 +15,8 @@ class TransactionORM(Base):
     tipo_gasto = Column(SAEnum(TipoGasto), nullable=True)
     fecha = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_recurrente = Column(Boolean, nullable=False, default=False)
+    # Identifica el mensaje que originó la transacción, para que un reintento no la duplique
+    origen_id = Column(String(64), nullable=True)
     
     user_id = Column(Integer, ForeignKey("users_back.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("categories_back.id"), nullable=True)
@@ -24,4 +26,5 @@ class TransactionORM(Base):
     
     __table_args__ = (
         Index("ix_transactions_user_fecha", "user_id", "fecha"),
+        UniqueConstraint("user_id", "origen_id", name="uq_transactions_user_origen"),
     )

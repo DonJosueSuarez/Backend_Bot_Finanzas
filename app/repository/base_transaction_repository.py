@@ -22,6 +22,10 @@ class ITransactionRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_origen(self, user_id: int, origen_id: str) -> Optional[TransactionORM]:
+        pass
+
+    @abstractmethod
     def get_by_user_id(self, user_id: int, limit:int = 10, offset:int = 0, filters: Optional[TransactionFilters] = None) -> List[TransactionORM]:
         pass
     

@@ -14,6 +14,11 @@ class PostgresTransactionRepository(ITransactionRepository):
         return self.db.query(TransactionORM).filter(TransactionORM.id == transaction_id).first()
     
 
+    def get_by_origen(self, user_id: int, origen_id: str) -> Optional[TransactionORM]:
+        return (self.db.query(TransactionORM)
+                .filter(TransactionORM.user_id == user_id, TransactionORM.origen_id == origen_id)
+                .first())
+
     def _filtrar(self, query, user_id: int, filters: Optional[TransactionFilters]):
         query = query.filter(TransactionORM.user_id == user_id)
         if not filters:

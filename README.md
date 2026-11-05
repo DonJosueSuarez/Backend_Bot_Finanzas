@@ -170,7 +170,9 @@ Otras variables: `CORS_ORIGINS` (orígenes del dashboard separados por coma; por
   "monto": 2.5,
   "descripcion": "empanadas",
   "categoria": "PIQUEOS Y COMIDA FUERA",
-  "tipo_gasto": "DESEO"
+  "tipo_gasto": "DESEO",
+  "fecha": "2026-11-03T23:50:00-05:00",   // opcional: momento del mensaje
+  "origen_id": "7381103128:1542"          // opcional: chat_id:message_id
 }
 ```
 
@@ -180,6 +182,8 @@ Otras variables: `CORS_ORIGINS` (orígenes del dashboard separados por coma; por
   - En los ingresos siempre se guarda `null`, aunque se envíe un valor.
   - Solo las necesidades cuentan para los días de supervivencia.
 - `is_recurrente` es opcional (por defecto `false`).
+- `fecha` es opcional y debe incluir zona horaria. Sin ella, se usa el momento de guardar.
+- `origen_id` es opcional. Si ya existe para ese usuario, `POST /transactions` devuelve la transacción guardada y no crea otra, así un reintento no duplica el movimiento.
 - `monto` usa **punto decimal** (`10.30`). Con coma (`"10,3"`) responde `422`.
 
 Categorías válidas: `ALIMENTACION HOGAR`, `PIQUEOS Y COMIDA FUERA`, `TRANSPORTE Y MOVILIDAD`, `SERVICIOS Y SUSCRIPCIONES`, `CUIDADO PERSONAL`, `SALUD`, `ENTRETENIMIENTO Y SOCIAL`, `EDUCACION Y TRABAJO`, `VARIOS E IMPREVISTOS`.
@@ -316,12 +320,24 @@ Start ─► Config ─► Basic LLM Chain ─► Registrar transacción ─► 
 
 - **Basic LLM Chain:** el prompt devuelve `tipo_movimiento`, `monto`, `descripcion`, `categoria` (una de las 9) y `tipo_gasto` (`NECESIDAD`/`DESEO`). Para ingresos, `categoria` y `tipo_gasto` van en `null`.
 - **Structured Output Parser:** usa un JSON Schema manual en lugar de un ejemplo. Con un ejemplo, n8n infiere `categoria` como `string` y rechazaría el `null` de los ingresos.
-- **Registrar transacción:** el cuerpo es `JSON.stringify({ user_id: Number($('Start').item.json.usuario), ...$json.output })`.
+- **Registrar transacción:** envía `$json.output` más `user_id`, `origen_id` y `fecha`, que llegan desde `Start`.
 - **Resultado:** es lo que recibe el flujo principal. El IF `es ingreso?` mira `tipo_movimiento`, y los mensajes usan `descripcion` y `saldo_actual`.
 
-Si el LLM devuelve algo que el backend rechaza (por ejemplo, una categoría inventada), el nodo HTTP falla con 422 y el bot no responde. La ejecución queda en el historial de n8n con el detalle.
+Si el LLM devuelve algo que el backend rechaza (por ejemplo, una categoría inventada), el nodo HTTP falla con 422 y el mensaje pasa a la cola de reintentos.
 
-### 5. Zona horaria
+### 5. Cola de reintentos
+
+Si fallan el clasificador, Whisper o `Registrar`, `bot-finanzas` guarda el mensaje en la Data Table `cola_mensajes` y avisa al usuario. El flujo `bot-cola` lo reintenta cada minuto:
+
+- Toma hasta 5 mensajes, empezando por el que lleva más tiempo sin intentarse, y se detiene en el primer fallo.
+- Un registro envía el mensaje de confirmación de siempre. Otra intención le pide al usuario que pregunte de nuevo, porque la respuesta ya podría no aplicar.
+- `fecha` conserva el día del mensaje original y `origen_id` (`chat_id:message_id`) evita duplicar el movimiento.
+- Los errores temporales (`429`, `502`, `503`, `504`, timeouts) se reintentan hasta 48 horas. Los demás, hasta 5 intentos. Luego se avisa al usuario y se elimina el mensaje.
+- `Extraer rango` y el saldo inicial no usan la cola: el bot pide repetir el mensaje.
+
+Los modelos de Groq usan `maxTokensToSample: 900`. Sin ese límite, Groq puede responder `429` porque la salida esperada supera su límite de 1000 tokens por minuto, y ese error no se resuelve reintentando.
+
+### 6. Zona horaria
 
 Configura la zona horaria del workflow `bot-finanzas` (*Settings → Timezone*) como `America/Guayaquil`. Así `$today` es la medianoche local y "¿cuánto gasté hoy?" cuenta desde las 00:00 de Ecuador.
 

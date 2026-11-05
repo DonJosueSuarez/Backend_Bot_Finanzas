@@ -1,6 +1,6 @@
 import unicodedata
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 from app.model.enums import TipoMovimiento, TipoGasto, TipoCategoria
 from typing import Optional
 from datetime import datetime
@@ -20,6 +20,9 @@ class TransactionCreate(TransactionBase):
     user_id: int
     # Alternativa a category_id para el bot: el LLM conoce nombres, no ids
     categoria: Optional[TipoCategoria] = None
+    # Momento del mensaje: un mensaje en cola se guarda en el día en que se envió
+    fecha: Optional[AwareDatetime] = None
+    origen_id: Optional[str] = Field(default=None, min_length=1, max_length=64)
 
     # Acepta "piqueos y comida fuera", "PIQUEOS_Y_COMIDA_FUERA" o con tildes
     @field_validator("categoria", mode="before")

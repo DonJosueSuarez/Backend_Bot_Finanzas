@@ -1,4 +1,5 @@
 from typing import List, Optional
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.repository.base_transaction_repository import ITransactionRepository, TransactionFilters
 from app.repository.base_category_repository import ICategoryRepository
@@ -25,6 +26,10 @@ class TransactionService:
     # -------------------------
     def _build_transaction(self, data: TransactionCreate) -> TransactionORM:
         values = data.model_dump(exclude={"categoria"})
+
+        # Sin fecha la pone la base; un None explícito violaría el NOT NULL
+        if values["fecha"] is None:
+            del values["fecha"]
 
         # El bot manda la categoría por nombre; se traduce a su id
         if data.categoria and values["category_id"] is None:
@@ -53,11 +58,26 @@ class TransactionService:
     # CREATE ONE
     # -------------------------
     def create_transaction(self, data: TransactionCreate) -> TransactionORM:
+        # Un reintento con el mismo origen_id devuelve la transacción ya guardada
+        if data.origen_id:
+            existente = self.repository.get_by_origen(data.user_id, data.origen_id)
+            if existente:
+                return existente
+
         transaction = self._build_transaction(data)
 
         self.repository.create(transaction)
 
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            # Dos reintentos simultáneos: el otro ya la guardó
+            existente = data.origen_id and self.repository.get_by_origen(data.user_id, data.origen_id)
+            if existente:
+                return existente
+            raise
+
         self.db.refresh(transaction)
 
         return transaction
